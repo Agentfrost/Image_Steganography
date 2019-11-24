@@ -1,20 +1,14 @@
 from cryptography.fernet import Fernet
 import json
-from flask import Flask,render_template,request,Response
-from flaskwebgui import FlaskUI
 from PIL import Image
 import numpy as np
 import os.path
 from os import path
 import sys
-import easygui
+import getpass
 Image.MAX_IMAGE_PIXELS=None
 
 path_dict={}
-
-app=Flask(__name__)
-app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
-ui=FlaskUI(app)
 
 class image_stg:
 
@@ -76,8 +70,8 @@ class image_stg:
         temp_sample=temp_sample[0:(len(temp_sample)-1)]
         return temp_sample
 
-    def img_embed(self,img,bin_data):
-        print("Embedding Image......")
+    def img_embed(self,bin_data,output_dir):
+        img=Image.open("temp.png")
         im_arr=np.array(img)
         shape=im_arr.shape
         bin_arr=np.array(list(bin_data),dtype=int)
@@ -96,94 +90,77 @@ class image_stg:
         new_img_num=new_img_num.reshape(new_img_num.shape[0],1)
         new_img=new_img_num.reshape(shape)
         new_im=Image.fromarray(new_img)
-        new_im.save("output/enc_output.png",quality=100)
+        new_im.save(os.path.join(output_dir,"emb_img.png"),quality=100)
     
     def img_extract(self,img):
         print("Extracting Embedded Data...........")
+        bin_buffer=""
         num=np.array(img)
         num=num.reshape(np.product(num.shape),1)
         bin_num=np.unpackbits(num,axis=1)
         bin_num=np.delete(bin_num,(0,1,2,3,4,5,6),1)
         bin_num=np.ravel(bin_num)
         bin_num=bin_num.tolist()
-        self.bin_buffer=''.join(map(str,bin_num))
-        
-def hide():
-    try:
-        img_path=path_dict["hide_im_path"]
-        img=Image.open(img_path)
-    except:
-        return "Invalid Image File"
-    em_path=path_dict["hide_em_path"]
-    if(not os.path.isfile(em_path)):
-        return "Invalid Embed File"
-    img=img.convert('RGB')
-    key=Fernet.generate_key() 
-    img_stg=image_stg(key)
-    size=img_stg.calc_bytes(img)
-    if size<=os.path.getsize(em_path):
-        return "The embed file is too big ! Select a file of size less than {} Bytes".format(size)
-    data=img_stg.read_data(em_path)
-    a=img_stg.encrypt(data)
-    bin_a=img_stg.bytes_to_binary(a)
-    img_stg.img_embed(img,bin_a)
-    with open("output/key.txt","w") as f:
-        f.write(key.decode())
-    return "Successful! The key is in the output directory"
+        bin_buffer=''.join(map(str,bin_num))
+        return bin_buffer
 
-def show():
-    if(not os.path.isfile(path_dict["show_im_path"])):
-        return "Invalid Embed File"
-    enc_path=path_dict["show_im_path"]
-    format_output=path_dict["format"]
-    key=path_dict["dec_key"]
+def converter(path):
     try:
-        img_stg=image_stg(key)
+        img=Image.open(path)
+        img.save("temp.png")
     except:
-        return "Decryption Failed !"
-    enc_img=Image.open(enc_path)
-    img_stg.img_extract(enc_img)
-    byte_buff=img_stg.binary_to_bytes(img_stg.bin_buffer)
-    b=img_stg.decrypt(byte_buff.encode())
-    img_stg.write_data("output/output.{}".format(format_output),b)
-    return "Extracted to output directory"
+        print("Invalid Carrier File")
+        sys.exit()
 
-def storage(flag,data):
-    if data=='' or data==None:
-        return -1
+def check_path(path,index,out):
+    if index==0:
+        if(not os.path.isdir(path)):
+            print(out)
+            sys.exit()
+    elif index==1:
+        if(not os.path.isfile(path)):
+            print(out)
+            sys.exit()
+
+def set_output_dir(arglist):
+    output_dir=os.getcwd()
+    if len(arglist)==5 and os.path.isdir(arglist[4]):
+        output_dir=arglist[4]
     else:
-        path_dict[flag]=data
-        return 0
+        print("Output Directory not specified or Invaid\nUsing Current Directory as Output Directory")
+    return output_dir
 
-@app.route("/")
-def index():
-    return render_template("index.html")
-@app.route("/handle",methods=['POST'])
-def req():
-    data=request.get_json(force=True)
-    if "hide" in data.keys():
-        if "im_path" in data.values():
-            res=storage("hide_im_path",easygui.fileopenbox(default="*.png"))
-            return str(res)
-        elif "em_path" in data.values():
-            res=storage("hide_em_path",easygui.fileopenbox(default="*.*"))
-            return str(res)
-    elif "show" in data.keys():
-        res=storage("show_im_path",easygui.fileopenbox(default="*.png"))
-        return str(res)
-    elif "dec_key" in data.keys():
-        res=storage("dec_key",data["dec_key"])
-        return str(res)
-    elif "format" in data.keys():
-        res=storage("format",data["format"])
-        return str(res)
-    if "init" in data.keys():
-        if "hide" in data.values():
-            result=hide()
-            return result
-        elif "show" in data.values():
-            result=show()
-            return result
-   
-if __name__ == "__main__": 
-    ui.run()
+def embed(arglist):
+    output_dir=set_output_dir(arglist)
+    check_path(arglist[2],1,"Invalid Carrier File")
+    check_path(arglist[3],1,"Invalid Embed File")
+    key=Fernet.generate_key()
+    im=image_stg(key)
+    enc_bytes=im.bytes_to_binary(im.encrypt(im.read_data(arglist[3])))
+    converter(arglist[2])
+    im.img_embed(enc_bytes,output_dir)
+    os.remove("temp.png")
+    with open(os.path.join(output_dir,"key.txt"),'w') as f:
+        f.write(key.decode())
+
+def extract(arglist):
+    output_dir=set_output_dir(arglist)
+    check_path(arglist[2],1,"Invalid Carrier File")
+    im=image_stg(getpass.getpass(prompt="Key:"))
+    emb_img=Image.open(arglist[2])
+    bin_buff=im.img_extract(emb_img)
+    byte_buff=im.binary_to_bytes(bin_buff).encode()
+    dec_data=im.decrypt(byte_buff)
+    with open(os.path.join(output_dir,"dec_data.{}".format(arglist[3])),"wb") as f:
+        f.write(dec_data)
+
+def helper():
+    print("\n\nUsage:\n\n\tcryptsteg -emb <Path to Carrier Image> <Path to Embed File> <Output Path default=current directory>\n\tcryptsteg -ext <Path to Carrier Image> <Embedded Data Format> <Output Path default=current directory>\n\nExample:\n\n\tcryptsteg -emb image.png file.txt\n\tcryptsteg -ext image.png txt\n\n")
+
+if __name__=="__main__":
+    arglist=sys.argv
+    if len(arglist) < 4:
+        helper()
+        sys.exit()
+    embed(arglist) if arglist[1]=='-emb' else extract(arglist) if arglist[1]=='-ext' else helper()
+    
