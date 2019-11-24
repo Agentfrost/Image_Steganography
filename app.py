@@ -8,8 +8,6 @@ import sys
 import getpass
 Image.MAX_IMAGE_PIXELS=None
 
-path_dict={}
-
 class image_stg:
 
     def __init__(self,key):
@@ -62,7 +60,7 @@ class image_stg:
 
     def calc_bytes(self,img):
         width,height=img.size
-        size=3*((width*height)/8)
+        size=3*width*height
         return size
 
     def prepare_sample(self,para):
@@ -72,6 +70,10 @@ class image_stg:
 
     def img_embed(self,bin_data,output_dir):
         img=Image.open("temp.png")
+        size=self.calc_bytes(img)
+        if len(bin_data)>=size:
+            print("Embed file is too Big !\nEmbed file must be less than {} Bytes".format((size/8)))
+            sys.exit()
         im_arr=np.array(img)
         shape=im_arr.shape
         bin_arr=np.array(list(bin_data),dtype=int)
@@ -93,7 +95,6 @@ class image_stg:
         new_im.save(os.path.join(output_dir,"emb_img.png"),quality=100)
     
     def img_extract(self,img):
-        print("Extracting Embedded Data...........")
         bin_buffer=""
         num=np.array(img)
         num=num.reshape(np.product(num.shape),1)
