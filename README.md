@@ -28,6 +28,6 @@ When specifying the **embedded data format** while extracting, **do not specify 
 
 For Example:
 
-**Correct** : **png**
+**Correct** : png
 
-**Incorrect** : **.png**
+**Incorrect** : **.**png
