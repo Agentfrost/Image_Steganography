@@ -4,6 +4,7 @@ Image Steganography using the LSB method with a layer of Symmetric Encryption
 
 #### Requirements:
 Python 3.7
+
 All modules in requirement.txt
 
 ### Usage:
