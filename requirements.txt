@@ -1,0 +1,5 @@
+cyptography
+pillow
+numpy
+getpass
+tqdm
