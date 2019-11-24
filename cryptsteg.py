@@ -11,37 +11,37 @@ Image.MAX_IMAGE_PIXELS=None
 
 class image_stg:
 
-'''Fernet key'''
+#Fernet key
 
     def __init__(self,key):
         self.f=Fernet(key)
 
-'''function for encryption'''
+#function for encryption
 
     def encrypt(self,data):
         enc_data=self.f.encrypt(data)
         return enc_data+b'^'
 
-'''function of decryption'''
+#function of decryption
 
     def decrypt(self,enc_data):
         data=self.f.decrypt(enc_data)
         return data
 
-'''read file data'''
+#read file data
 
     def read_data(self,path):
         with open(path,"rb") as f:
             data=f.read()
         return data
 
-'''write data into file'''
+#write data into file
 
     def write_data(self,path,data):
         with open(path,"wb") as f:
             f.write(data)
 
-'''Convert bytes into binary'''
+#Convert bytes into binary
 
     def bytes_to_binary(self,byte_buffer):
         print("Converting Bytes to Binary:")
@@ -55,7 +55,7 @@ class image_stg:
             bin_buffer=bin_buffer+tmp
         return bin_buffer
 
-'''Convert binary into bytes'''
+#Convert binary into bytes
 
     def binary_to_bytes(self,bin_buffer):
         byte_buffer=""
@@ -76,15 +76,15 @@ class image_stg:
                 break
         return byte_buffer
 
-'''Calculate the number of bits available to embed data'''
+#Calculate the number of bits available to embed data
 
     def calc_bytes(self,img):
         width,height=img.size
         size=3*width*height
         return size
 
-'''Embed binary data into image
-using numpy edit pixel data to replace LSB with the binary data of the embed file'''
+#Embed binary data into image
+#using numpy edit pixel data to replace LSB with the binary data of the embed file
 
     def img_embed(self,bin_data,output_dir):
         img=Image.open("temp.png")
@@ -115,7 +115,7 @@ using numpy edit pixel data to replace LSB with the binary data of the embed fil
         new_im=Image.fromarray(new_img)
         new_im.save(os.path.join(output_dir,"emb_img.png"),quality=100)
 
-'''Extract data by accessing the LSB of every color in every pixel''' 
+#Extract data by accessing the LSB of every color in every pixel
 
     def img_extract(self,img):
         print("Extracting....")
@@ -129,7 +129,7 @@ using numpy edit pixel data to replace LSB with the binary data of the embed fil
         bin_buffer=''.join(map(str,bin_num))
         return bin_buffer
 
-'''converts images to png'''
+#converts images to png
 
 def converter(path):
     try:
@@ -139,7 +139,7 @@ def converter(path):
         print("Invalid Carrier File")
         sys.exit()
 
-'''checks wether the given file or folder exists'''
+#checks wether the given file or folder exists
 
 def check_path(path,index,out):
     if index==0:
@@ -151,7 +151,7 @@ def check_path(path,index,out):
             print(out)
             sys.exit()
 
-'''sets the output directory if the user has not specified any output'''
+#sets the output directory if the user has not specified any output
 
 def set_output_dir(arglist):
     output_dir=os.getcwd()
@@ -161,7 +161,7 @@ def set_output_dir(arglist):
         print("Output Directory not specified or Invaid\nUsing Current Directory as Output Directory")
     return output_dir
 
-'''function to call all fucntions required to embed data sequentially'''
+#function to call all fucntions required to embed data sequentially
 
 def embed(arglist):
     output_dir=set_output_dir(arglist)
@@ -176,7 +176,7 @@ def embed(arglist):
     with open(os.path.join(output_dir,"key.txt"),'w') as f:
         f.write(key.decode())
 
-'''function to call all functions required to extract embedded data'''
+#function to call all functions required to extract embedded data
 
 def extract(arglist):
     output_dir=set_output_dir(arglist)
@@ -189,7 +189,7 @@ def extract(arglist):
     with open(os.path.join(output_dir,"dec_data.{}".format(arglist[3])),"wb") as f:
         f.write(dec_data)
 
-'''displays the usage'''
+#displays the usage
 
 def helper():
     print("\n\nUsage:\n\n\tcryptsteg -emb <Path to Carrier Image> <Path to Embed File> <Output Path default=current directory>\n\tcryptsteg -ext <Path to Carrier Image> <Embedded Data Format> <Output Path default=current directory>\n\nExample:\n\n\tcryptsteg -emb image.png file.txt\n\tcryptsteg -ext image.png txt\n\n")
