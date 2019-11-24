@@ -1,35 +1,47 @@
-from cryptography.fernet import Fernet
-import json
-from PIL import Image
-import numpy as np
+from cryptography.fernet import Fernet       #for encryption and decryption
+from PIL import Image                        #for opening and extracting pixels from image
+import numpy as np              
 import os.path
 from os import path
 import sys
-import getpass
-from tqdm import tqdm
+import getpass                               #for secure input of key
+from tqdm import tqdm                        #for progress bar
+
 Image.MAX_IMAGE_PIXELS=None
 
 class image_stg:
 
+'''Fernet key'''
+
     def __init__(self,key):
         self.f=Fernet(key)
+
+'''function for encryption'''
 
     def encrypt(self,data):
         enc_data=self.f.encrypt(data)
         return enc_data+b'^'
 
+'''function of decryption'''
+
     def decrypt(self,enc_data):
         data=self.f.decrypt(enc_data)
         return data
+
+'''read file data'''
 
     def read_data(self,path):
         with open(path,"rb") as f:
             data=f.read()
         return data
-    
+
+'''write data into file'''
+
     def write_data(self,path,data):
         with open(path,"wb") as f:
             f.write(data)
+
+'''Convert bytes into binary'''
 
     def bytes_to_binary(self,byte_buffer):
         print("Converting Bytes to Binary:")
@@ -42,6 +54,8 @@ class image_stg:
             bar.update(1)
             bin_buffer=bin_buffer+tmp
         return bin_buffer
+
+'''Convert binary into bytes'''
 
     def binary_to_bytes(self,bin_buffer):
         byte_buffer=""
@@ -62,15 +76,15 @@ class image_stg:
                 break
         return byte_buffer
 
+'''Calculate the number of bits available to embed data'''
+
     def calc_bytes(self,img):
         width,height=img.size
         size=3*width*height
         return size
 
-    def prepare_sample(self,para):
-        temp_sample="{0:b}".format(para)
-        temp_sample=temp_sample[0:(len(temp_sample)-1)]
-        return temp_sample
+'''Embed binary data into image
+using numpy edit pixel data to replace LSB with the binary data of the embed file'''
 
     def img_embed(self,bin_data,output_dir):
         img=Image.open("temp.png")
@@ -87,6 +101,7 @@ class image_stg:
         temp_bin=bin_img[:,7]
         bar=tqdm(total=bin_arr.shape[0])
         print("Embedding Data:")
+
         for i in range(bin_arr.shape[0]):
             temp_bin[i]=bin_arr[i]
             bar.update(1)
@@ -99,7 +114,9 @@ class image_stg:
         new_img=new_img_num.reshape(shape)
         new_im=Image.fromarray(new_img)
         new_im.save(os.path.join(output_dir,"emb_img.png"),quality=100)
-    
+
+'''Extract data by accessing the LSB of every color in every pixel''' 
+
     def img_extract(self,img):
         print("Extracting....")
         bin_buffer=""
@@ -112,6 +129,8 @@ class image_stg:
         bin_buffer=''.join(map(str,bin_num))
         return bin_buffer
 
+'''converts images to png'''
+
 def converter(path):
     try:
         img=Image.open(path)
@@ -119,6 +138,8 @@ def converter(path):
     except:
         print("Invalid Carrier File")
         sys.exit()
+
+'''checks wether the given file or folder exists'''
 
 def check_path(path,index,out):
     if index==0:
@@ -130,6 +151,8 @@ def check_path(path,index,out):
             print(out)
             sys.exit()
 
+'''sets the output directory if the user has not specified any output'''
+
 def set_output_dir(arglist):
     output_dir=os.getcwd()
     if len(arglist)==5 and os.path.isdir(arglist[4]):
@@ -137,6 +160,8 @@ def set_output_dir(arglist):
     else:
         print("Output Directory not specified or Invaid\nUsing Current Directory as Output Directory")
     return output_dir
+
+'''function to call all fucntions required to embed data sequentially'''
 
 def embed(arglist):
     output_dir=set_output_dir(arglist)
@@ -151,6 +176,8 @@ def embed(arglist):
     with open(os.path.join(output_dir,"key.txt"),'w') as f:
         f.write(key.decode())
 
+'''function to call all functions required to extract embedded data'''
+
 def extract(arglist):
     output_dir=set_output_dir(arglist)
     check_path(arglist[2],1,"Invalid Carrier File")
@@ -161,6 +188,8 @@ def extract(arglist):
     dec_data=im.decrypt(byte_buff)
     with open(os.path.join(output_dir,"dec_data.{}".format(arglist[3])),"wb") as f:
         f.write(dec_data)
+
+'''displays the usage'''
 
 def helper():
     print("\n\nUsage:\n\n\tcryptsteg -emb <Path to Carrier Image> <Path to Embed File> <Output Path default=current directory>\n\tcryptsteg -ext <Path to Carrier Image> <Embedded Data Format> <Output Path default=current directory>\n\nExample:\n\n\tcryptsteg -emb image.png file.txt\n\tcryptsteg -ext image.png txt\n\n")
