@@ -29,4 +29,5 @@ When specifying the **embedded data format** while extracting, **do not specify 
 For Example:
 
 **Correct** : **png**
+
 **Incorrect** : **.png**
