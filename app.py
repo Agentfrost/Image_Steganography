@@ -6,6 +6,7 @@ import os.path
 from os import path
 import sys
 import getpass
+from tqdm import tqdm
 Image.MAX_IMAGE_PIXELS=None
 
 class image_stg:
@@ -31,11 +32,14 @@ class image_stg:
             f.write(data)
 
     def bytes_to_binary(self,byte_buffer):
+        print("Converting Bytes to Binary:")
+        bar=tqdm(total=len(byte_buffer))
         bin_buffer=""
         for i in byte_buffer:
             tmp="{0:b}".format(i)
             if len(tmp)==6:
                 tmp='0'+tmp
+            bar.update(1)
             bin_buffer=bin_buffer+tmp
         return bin_buffer
 
@@ -81,9 +85,11 @@ class image_stg:
         img_num=im_arr.reshape(np.product(im_arr.shape),1)
         bin_img=np.unpackbits(img_num,axis=1)
         temp_bin=bin_img[:,7]
-
+        bar=tqdm(total=bin_arr.shape[0])
+        print("Embedding Data:")
         for i in range(bin_arr.shape[0]):
             temp_bin[i]=bin_arr[i]
+            bar.update(1)
 
         temp_bin=temp_bin.reshape(temp_bin.shape[0],1)
         bin_img=np.delete(bin_img,7,1)
@@ -95,6 +101,7 @@ class image_stg:
         new_im.save(os.path.join(output_dir,"emb_img.png"),quality=100)
     
     def img_extract(self,img):
+        print("Extracting....")
         bin_buffer=""
         num=np.array(img)
         num=num.reshape(np.product(num.shape),1)
